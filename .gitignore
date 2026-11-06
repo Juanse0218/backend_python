@@ -1,0 +1,24 @@
+# Secretos
+.env
+.env.*
+
+# Entornos virtuales
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editores
+.vscode/
+.idea/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Datos que no necesita la API
+data/ventas_features.csv
+data/backtest/

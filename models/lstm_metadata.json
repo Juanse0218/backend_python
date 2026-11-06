@@ -1,0 +1,115 @@
+{
+    "model": "LSTM",
+    "window_size": 30,
+    "forecast_horizons": [
+        7,
+        30
+    ],
+    "training_start": "2021-01-01",
+    "training_end": "2025-06-30",
+    "evaluation_start": "2025-07-01",
+    "evaluation_end": "2025-12-31",
+    "final_model_training_end": "2025-12-31",
+    "excluded_years": [
+        2026
+    ],
+    "flavors": [
+        "cafe",
+        "caramelo",
+        "chocolate",
+        "coco",
+        "durazno",
+        "fresa",
+        "limon",
+        "mango",
+        "maracuya",
+        "menta",
+        "mora",
+        "nutella",
+        "vainilla"
+    ],
+    "global_metrics": {
+        "MAE": 3.0284680425622392,
+        "RMSE": 3.672662361023751
+    },
+    "metrics_by_flavor": [
+        {
+            "sabor": "cafe",
+            "MAE": 3.138857310232909,
+            "RMSE": 3.6959218005398573,
+            "epocas": 19
+        },
+        {
+            "sabor": "caramelo",
+            "MAE": 3.4056849401930105,
+            "RMSE": 3.9430012136209416,
+            "epocas": 28
+        },
+        {
+            "sabor": "chocolate",
+            "MAE": 3.1484279710313547,
+            "RMSE": 3.553052921498815,
+            "epocas": 12
+        },
+        {
+            "sabor": "coco",
+            "MAE": 5.522090398746988,
+            "RMSE": 6.508778201574436,
+            "epocas": 37
+        },
+        {
+            "sabor": "durazno",
+            "MAE": 2.1002218256825986,
+            "RMSE": 2.4960677958757853,
+            "epocas": 16
+        },
+        {
+            "sabor": "fresa",
+            "MAE": 3.0203685216281726,
+            "RMSE": 3.6394617414356487,
+            "epocas": 9
+        },
+        {
+            "sabor": "limon",
+            "MAE": 1.8783459747615068,
+            "RMSE": 2.2414292119704786,
+            "epocas": 20
+        },
+        {
+            "sabor": "mango",
+            "MAE": 2.814936760974967,
+            "RMSE": 3.350700854424684,
+            "epocas": 13
+        },
+        {
+            "sabor": "maracuya",
+            "MAE": 3.193666880545409,
+            "RMSE": 3.6856094438505544,
+            "epocas": 50
+        },
+        {
+            "sabor": "menta",
+            "MAE": 2.8858480116595393,
+            "RMSE": 3.3355248770977046,
+            "epocas": 11
+        },
+        {
+            "sabor": "mora",
+            "MAE": 2.9584515820378843,
+            "RMSE": 3.3972267198408463,
+            "epocas": 19
+        },
+        {
+            "sabor": "nutella",
+            "MAE": 3.248403468857641,
+            "RMSE": 3.643032437052706,
+            "epocas": 13
+        },
+        {
+            "sabor": "vainilla",
+            "MAE": 2.0547809069571286,
+            "RMSE": 2.4299885040073024,
+            "epocas": 9
+        }
+    ]
+}

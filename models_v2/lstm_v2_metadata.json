@@ -1,0 +1,96 @@
+{
+    "model": "LSTM V2",
+    "window_size": 30,
+    "features": [
+        "ventas",
+        "dia_semana",
+        "mes",
+        "sin_dia_anio",
+        "cos_dia_anio",
+        "promedio_7",
+        "promedio_30"
+    ],
+    "test_start": "2024-07-01",
+    "metrics_by_flavor": [
+        {
+            "sabor": "cafe",
+            "MAE": 2.541285991668701,
+            "RMSE": 3.1708232470104254,
+            "epochs": 21
+        },
+        {
+            "sabor": "caramelo",
+            "MAE": 2.885807752609253,
+            "RMSE": 3.3879041874025924,
+            "epochs": 17
+        },
+        {
+            "sabor": "chocolate",
+            "MAE": 2.5385024547576904,
+            "RMSE": 3.2257214944173187,
+            "epochs": 13
+        },
+        {
+            "sabor": "coco",
+            "MAE": 3.9618866443634033,
+            "RMSE": 5.087574778764102,
+            "epochs": 11
+        },
+        {
+            "sabor": "durazno",
+            "MAE": 1.8793952465057373,
+            "RMSE": 2.42779781537937,
+            "epochs": 13
+        },
+        {
+            "sabor": "fresa",
+            "MAE": 2.6560072898864746,
+            "RMSE": 3.2156841899143545,
+            "epochs": 14
+        },
+        {
+            "sabor": "limon",
+            "MAE": 1.890019178390503,
+            "RMSE": 2.241859225921395,
+            "epochs": 30
+        },
+        {
+            "sabor": "mango",
+            "MAE": 2.4478256702423096,
+            "RMSE": 3.142717565805953,
+            "epochs": 18
+        },
+        {
+            "sabor": "maracuya",
+            "MAE": 2.4018518924713135,
+            "RMSE": 3.1868978193341038,
+            "epochs": 12
+        },
+        {
+            "sabor": "menta",
+            "MAE": 2.9188265800476074,
+            "RMSE": 3.5892705449351086,
+            "epochs": 16
+        },
+        {
+            "sabor": "mora",
+            "MAE": 2.4436631202697754,
+            "RMSE": 2.993617102235582,
+            "epochs": 23
+        },
+        {
+            "sabor": "nutella",
+            "MAE": 2.8512842655181885,
+            "RMSE": 3.640572346973729,
+            "epochs": 16
+        },
+        {
+            "sabor": "vainilla",
+            "MAE": 1.7725517749786377,
+            "RMSE": 2.2879655833223387,
+            "epochs": 11
+        }
+    ],
+    "global_mean_mae": 2.5529929124391995,
+    "global_mean_rmse": 3.1998773770320286
+}
