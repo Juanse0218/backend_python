@@ -2,6 +2,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.service.forecast_service import (
     FLAVORS,
@@ -11,6 +13,12 @@ from app.service.forecast_service import (
 from app.service.general_forecast_service import (
     generate_general_forecast
 )
+
+from app.core.prediction_cache import (
+    forecast_cache,
+    general_forecast_cache
+)
+
 
 router = APIRouter(
     prefix="/api/predictions",
@@ -28,7 +36,7 @@ class ForecastRequest(BaseModel):
     dias: int = Field(
         ...,
         ge=1,
-        le=365,
+        le=30,
         description="Cantidad de días de predicción"
     )
 
@@ -37,9 +45,15 @@ class GeneralForecastRequest(BaseModel):
     dias: int = Field(
         ...,
         ge=1,
-        le=365,
+        le=30,
         description="Cantidad de días de predicción general"
     )
+
+
+def get_local_date():
+    return datetime.now(
+        ZoneInfo("America/Bogota")
+    ).strftime("%Y-%m-%d")
 
 
 @router.get("/flavors")
@@ -52,9 +66,11 @@ def get_flavors():
 
 @router.post("/forecast")
 def generate_forecast(request: ForecastRequest):
-
     try:
-        sabores = [sabor.lower().strip() for sabor in request.sabores]
+        sabores = [
+            sabor.lower().strip()
+            for sabor in request.sabores
+        ]
 
         invalidos = [
             sabor for sabor in sabores
@@ -73,17 +89,28 @@ def generate_forecast(request: ForecastRequest):
                 detail="No se permiten sabores repetidos"
             )
 
-        predictions = predict_multiple_flavors(
-            sabores,
-            request.dias
+        fecha = get_local_date()
+
+        # Se conserva el orden de sabores porque también
+        # determina el orden de la respuesta.
+        cache_key = (
+            f"forecast:{fecha}:{','.join(sabores)}:{request.dias}"
         )
 
-        return {
-            "total_predicciones": len(predictions),
-            "dias": request.dias,
-            "sabores": sabores,
-            "predicciones": predictions
-        }
+        result, cache_hit = forecast_cache.get_or_compute(
+            cache_key,
+            lambda: {
+                "total_predicciones": len(sabores) * request.dias,
+                "dias": request.dias,
+                "sabores": sabores,
+                "predicciones": predict_multiple_flavors(
+                    sabores,
+                    request.dias
+                )
+            }
+        )
+
+        return result
 
     except HTTPException:
         raise
@@ -95,15 +122,24 @@ def generate_forecast(request: ForecastRequest):
         )
 
 
-# NUEVO ENDPOINT: DEMANDA GENERAL
 @router.post("/general-forecast")
 def generate_general_forecast_endpoint(
     request: GeneralForecastRequest
 ):
-
     try:
-        result = generate_general_forecast(
-            request.dias
+        fecha = get_local_date()
+
+        cache_key = (
+            f"general_forecast:{fecha}:{request.dias}"
+        )
+
+        result, cache_hit = (
+            general_forecast_cache.get_or_compute(
+                cache_key,
+                lambda: generate_general_forecast(
+                    request.dias
+                )
+            )
         )
 
         return result

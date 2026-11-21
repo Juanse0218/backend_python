@@ -9,9 +9,9 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.models import Sequential # type: ignore
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Input # type: ignore
+from tensorflow.keras.callbacks import EarlyStopping # type: ignore
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]

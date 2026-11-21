@@ -10,14 +10,17 @@ from zoneinfo import ZoneInfo
 from functools import lru_cache
 
 
-# Rutas del proyecto
+# ==========================================
+# CONFIGURACIÓN
+# ==========================================
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
+
 DATA_FILE = ROOT_DIR / "data" / "ventas_diarias.csv"
 MODELS_DIR = ROOT_DIR / "models"
 
 WINDOW_SIZE = 30
 
-# Sabores disponibles
 FLAVORS = [
     "cafe",
     "caramelo",
@@ -36,14 +39,14 @@ FLAVORS = [
 
 
 # ==========================================
-# CARGA DE RECURSOS CON CACHÉ
+# CARGA DE MODELOS Y ESCALADORES
 # ==========================================
 
 @lru_cache(maxsize=1)
 def load_resources():
     """
-    Carga los modelos y escaladores una sola vez.
-    Los mantiene en memoria para solicitudes posteriores.
+    Carga los 13 modelos LSTM y los escaladores
+    una sola vez por proceso.
     """
 
     print("Cargando modelos LSTM...")
@@ -69,16 +72,17 @@ def load_resources():
 
 
 # ==========================================
-# CARGA DEL HISTÓRICO CON CACHÉ
+# CARGA DEL HISTÓRICO
 # ==========================================
 
 @lru_cache(maxsize=1)
 def load_dataset():
     """
-    Lee el CSV una sola vez y conserva los datos en memoria.
+    Lee el CSV una sola vez y conserva el histórico
+    en memoria.
     """
 
-    print("Cargando historico de ventas...")
+    print("Cargando histórico de ventas...")
 
     df = pd.read_csv(
         DATA_FILE,
@@ -90,27 +94,43 @@ def load_dataset():
         (df["fecha"].dt.year <= 2024)
     ].copy()
 
-    print("Historico cargado correctamente.")
+    print("Histórico cargado correctamente.")
 
     return df
 
 
-def load_historical_data(flavor):
+@lru_cache(maxsize=13)
+def load_historical_values(flavor):
     """
-    Obtiene el historico de un sabor desde el CSV almacenado.
+    Obtiene y almacena en caché los últimos 30 registros
+    históricos de cada sabor.
     """
+
+    if flavor not in FLAVORS:
+        raise ValueError(f"Sabor no disponible: {flavor}")
 
     df = load_dataset()
 
-    history = df[
-        df["sabor"] == flavor
-    ].copy()
+    history = df.loc[
+        df["sabor"] == flavor,
+        ["fecha", "cantidad_vendida"]
+    ]
 
-    history = history.sort_values(
-        "fecha"
-    ).reset_index(drop=True)
+    history = history.sort_values("fecha")
 
-    return history
+    values = history[
+        "cantidad_vendida"
+    ].tail(WINDOW_SIZE).to_numpy(dtype=np.float64)
+
+    if len(values) < WINDOW_SIZE:
+        raise ValueError(
+            f"No hay suficientes registros históricos para {flavor}"
+        )
+
+    # El arreglo almacenado en caché no debe modificarse.
+    values.setflags(write=False)
+
+    return values
 
 
 # ==========================================
@@ -120,6 +140,7 @@ def load_historical_data(flavor):
 def predict_flavor(flavor, days, models, scalers):
     """
     Genera predicciones recursivas para un sabor.
+    Conserva el modelo LSTM y su lógica de predicción.
     """
 
     if flavor not in FLAVORS:
@@ -129,27 +150,15 @@ def predict_flavor(flavor, days, models, scalers):
 
     if not isinstance(days, int) or days < 1 or days > 30:
         raise ValueError(
-            "Los dias deben estar entre 1 y 30"
+            "Los días deben estar entre 1 y 30"
         )
 
-    # Obtener histórico desde memoria
-    history = load_historical_data(flavor)
+    # Histórico previamente almacenado en caché.
+    last_values = load_historical_values(flavor)
 
-    if history.empty:
-        raise ValueError(
-            f"No hay datos historicos para {flavor}"
-        )
+    # Copia local para evitar modificar el histórico almacenado.
+    last_values = last_values.reshape(-1, 1).copy()
 
-    last_values = history[
-        "cantidad_vendida"
-    ].tail(WINDOW_SIZE).values.reshape(-1, 1)
-
-    if len(last_values) < WINDOW_SIZE:
-        raise ValueError(
-            f"No hay suficientes registros historicos para {flavor}"
-        )
-
-    # Escalador y modelo ya cargados
     scaler = scalers[flavor]
     model = models[flavor]
 
@@ -161,7 +170,7 @@ def predict_flavor(flavor, days, models, scalers):
 
     predictions = []
 
-    # Predicción recursiva optimizada
+    # Predicción recursiva.
     for step in range(1, days + 1):
 
         X = current_window.reshape(
@@ -170,15 +179,13 @@ def predict_flavor(flavor, days, models, scalers):
             1
         ).astype(np.float32)
 
-        # Llamada directa al modelo: evita la sobrecarga
-        # de model.predict() en cada día.
         predicted_scaled = float(
             model(X, training=False)[0, 0].numpy()
         )
 
         predicted_units = scaler.inverse_transform(
             np.array([[predicted_scaled]])
-        )[0][0]
+        )[0, 0]
 
         predicted_units = max(
             0,
@@ -187,16 +194,12 @@ def predict_flavor(flavor, days, models, scalers):
 
         predicted_scaled = scaler.transform(
             np.array([[predicted_units]])
-        )[0][0]
+        )[0, 0]
 
-        # Desplazar ventana
-        current_window = np.concatenate(
-            (
-                current_window[1:],
-                np.array([[predicted_scaled]])
-            ),
-            axis=0
-        )
+        # Desplazamiento de ventana sin crear
+        # un nuevo arreglo mediante np.concatenate.
+        current_window[:-1, 0] = current_window[1:, 0]
+        current_window[-1, 0] = predicted_scaled
 
         prediction_date = today + timedelta(
             days=step
@@ -220,7 +223,8 @@ def predict_flavor(flavor, days, models, scalers):
 
 def predict_multiple_flavors(flavors, days):
     """
-    Predice varios sabores reutilizando los recursos cargados.
+    Predice varios sabores reutilizando los modelos
+    y el histórico almacenado en memoria.
     """
 
     models, scalers = load_resources()
@@ -247,7 +251,7 @@ def predict_multiple_flavors(flavors, days):
 
 def predict_all_flavors(days):
     """
-    Predice los 13 sabores.
+    Predice los 13 sabores disponibles.
     """
 
     return predict_multiple_flavors(
@@ -262,15 +266,25 @@ def predict_all_flavors(days):
 
 if __name__ == "__main__":
 
+    import time
+
     print("\n========== PRUEBA DE PREDICCIÓN LSTM ==========\n")
+
+    start = time.perf_counter()
 
     predictions = predict_multiple_flavors(
         ["mango", "fresa", "chocolate"],
         7
     )
 
+    elapsed = time.perf_counter() - start
+
     result_df = pd.DataFrame(predictions)
 
     print(result_df.to_string(index=False))
+
+    print(
+        f"\nTiempo de ejecución: {elapsed:.2f} segundos"
+    )
 
     print("\nPredicciones generadas correctamente.")
